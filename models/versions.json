@@ -41,34 +41,6 @@
             "hash": "bfd6d55e20db7373a4599e134bd722ced2d16c298cdd033836bd98286a18dabc"
         }
     ],
-    "BTC_4h": [
-        {
-            "timestamp": "2025-06-23T12:55:48.173972+00:00",
-            "metrics": {
-                "val_loss": 0.15414903064568838,
-                "val_mape": 1.0095103979110718,
-                "val_r2": 0.5562961101531982,
-                "val_rmse": 1348.607707971447,
-                "learning_rate": 9.045490342255493e-06,
-                "trained_on_demand": true
-            },
-            "hash": "b594ce37350f8b915edcb7450b712498fdb8dedd8b7060159d37bb07dd52be3b"
-        }
-    ],
-    "BTC_24h": [
-        {
-            "timestamp": "2025-06-23T13:52:36.671226+00:00",
-            "metrics": {
-                "val_loss": 0.1588599532842636,
-                "val_mape": 7.110722541809082,
-                "val_r2": -10.300689697265625,
-                "val_rmse": 8339.33570495876,
-                "learning_rate": 3.2401920533291104e-05,
-                "trained_on_demand": true
-            },
-            "hash": "602342fdf9a2f3505704ac18d3a3d9b5f8bd013c732aba6153d97c49bf81fd74"
-        }
-    ],
     "SOL_24h": [
         {
             "timestamp": "2025-06-23T14:54:00.277660+00:00",
@@ -111,18 +83,46 @@
             "hash": "2259539c791a9b7c8905038b4e2b85784132ef1b6ebe0739a707134b6175cc51"
         }
     ],
-    "BTC_30m": [
+    "WLD_30m": [
         {
-            "timestamp": "2025-06-23T15:08:28.138270+00:00",
+            "timestamp": "2025-06-23T15:16:01.596448+00:00",
             "metrics": {
-                "val_loss": 0.44584066420793533,
-                "val_mape": 0.20410339534282684,
-                "val_r2": -0.06347918510437012,
-                "val_rmse": 0.2920328322480487,
-                "learning_rate": 4.730383791418243e-05,
+                "val_loss": 0.3602939347426097,
+                "val_mape": 0.7282587289810181,
+                "val_r2": -0.29925012588500977,
+                "val_rmse": 0.9819429720559263,
+                "learning_rate": 9.628726098857366e-05,
                 "trained_on_demand": true
             },
-            "hash": "900f04da8620d757ed6e30a9e06e9d0162b01995b3e1d4b1b1421893359e3618"
+            "hash": "ec3094e7fbace8ea03204b1097ce7ddfbda5c2181ed8e93a81e68ccda8fdb048"
+        }
+    ],
+    "BTC_30m": [
+        {
+            "timestamp": "2025-06-23T15:21:45.211935+00:00",
+            "metrics": {
+                "val_loss": 0.42725853621959686,
+                "val_mape": 0.1986202597618103,
+                "val_r2": -0.023259401321411133,
+                "val_rmse": 0.28666755520651493,
+                "learning_rate": 0.00047038225851378946,
+                "trained_on_demand": true
+            },
+            "hash": "3a341e2723ce0cbcc3aa4f084f47d3cbe7839a15667984f24369ac48dd14dabc"
+        }
+    ],
+    "BTC_4h": [
+        {
+            "timestamp": "2025-06-23T16:14:05.643106+00:00",
+            "metrics": {
+                "val_loss": 0.22871669133504233,
+                "val_mape": 1.3366960287094116,
+                "val_r2": 0.3617423176765442,
+                "val_rmse": 1627.8785274092168,
+                "learning_rate": 7.998030725163339e-05,
+                "trained_on_demand": true
+            },
+            "hash": "804ca72eb144a0570977f2337cbcb651de6116b76a6c18503a5e2509b31dc4e6"
         }
     ]
 }

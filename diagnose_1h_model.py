@@ -21,7 +21,7 @@ def analyze_1h_model():
     try:
         # 1. Fetch 1h data
         print("1. Fetching 1h data...")
-        data = data_fetcher.fetch_data('BTC', '1h')
+        data = data_fetcher.get_historical_data('BTC', '1h')
         print(f"Data shape: {data.shape}")
         print(f"Date range: {data.index.min()} to {data.index.max()}")
         print(f"Columns: {list(data.columns)}")
