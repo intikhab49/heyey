@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import RobustScaler, MinMaxScaler
 import joblib
 import logging
 from datetime import datetime
@@ -69,6 +69,7 @@ class BiLSTMWithAttention(nn.Module):
         # Output layers
         self.fc1 = nn.Linear(hidden_size * 2, hidden_size)
         self.fc2 = nn.Linear(hidden_size, 1)
+        # Allow flexible output activation (default Tanh for scaled targets)
         self.output_activation = nn.Tanh()
     
     def forward(self, x):
@@ -104,7 +105,7 @@ class BiLSTMWithAttention(nn.Module):
         out = torch.relu(out)
         out = self.dropouts[0](out)  # Reuse first dropout layer
         out = self.fc2(out)  # (batch_size, 1)
-        out = self.output_activation(out)  # Scale to [-1, 1] range
+        out = self.output_activation(out)  # Identity activation
         
         return out
 
@@ -133,9 +134,11 @@ class ModelTrainer:
         'CCI', 'Stoch_%K', 'Stoch_%D', 'MFI'
     ]
     
-    def __init__(self, symbol: str, timeframe: str):
+    def __init__(self, symbol: str, timeframe: str, legacy_mode: bool = False):
         self.symbol = symbol
         self.timeframe = timeframe
+        # Flag to enable legacy behaviour (static features + RobustScaler)
+        self.legacy_mode = legacy_mode
         self.model_dir = Path(settings.MODEL_PATH) / symbol
         self.model_dir.mkdir(parents=True, exist_ok=True)
         
@@ -155,6 +158,8 @@ class ModelTrainer:
         
         # Initialize data fetcher
         self.data_fetcher = DataFetcher()
+        # Feature names collected after indicator generation (static in legacy mode)
+        self.feature_names: List[str] = self.FEATURE_LIST.copy() if self.legacy_mode else []
         
     def _add_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate technical indicators using the ta library"""
@@ -202,6 +207,21 @@ class ModelTrainer:
             # Add TSI
             tsi = ta.momentum.TSIIndicator(df['Close'], window_slow=25, window_fast=13)
             df['TSI'] = tsi.tsi()
+
+            # ----- Add comprehensive TA features from ta library -----
+            df_ta_full = ta.add_all_ta_features(
+                df[['Open', 'High', 'Low', 'Close', 'Volume']].copy(),
+                open='Open',
+                high='High',
+                low='Low',
+                close='Close',
+                volume='Volume',
+                fillna=True,
+            )
+            # Merge without overwriting already-computed columns
+            for col in df_ta_full.columns:
+                if col not in df:
+                    df[col] = df_ta_full[col]
             
             # Add normalized price ratios
             df['Price_to_SMA'] = df['Close'] / df['SMA_20']
@@ -211,7 +231,7 @@ class ModelTrainer:
             # Forward fill and then backward fill any remaining NaN values
             df = df.ffill().bfill()
             
-            return df[self.FEATURE_LIST]
+            return df
             
         except Exception as e:
             logger.error(f"Error calculating technical indicators: {str(e)}")
@@ -227,6 +247,16 @@ class ModelTrainer:
             
             # Calculate technical indicators
             data = self._add_technical_indicators(data)
+
+            # In legacy mode, restrict to the curated static feature list
+            if self.legacy_mode:
+                available_features = [col for col in self.FEATURE_LIST if col in data.columns]
+                if not available_features:
+                    raise ValueError("None of the legacy features are present in the dataset.")
+                data = data[available_features]
+
+            # Record feature list (static in legacy mode, dynamic otherwise)
+            self.feature_names = data.columns.tolist()
             
             # Validate data quality
             if data.isnull().any().any():
@@ -236,7 +266,7 @@ class ModelTrainer:
                 raise ValueError(f"Insufficient data points after preprocessing: {len(data)}")
             
             # Scale features
-            scaler = RobustScaler()
+            scaler = RobustScaler() if self.legacy_mode else MinMaxScaler(feature_range=(-1, 1))
             scaled_data = scaler.fit_transform(data)
             
             # Create sequences with validation
@@ -254,18 +284,13 @@ class ModelTrainer:
             if len(X) < 100:  # Minimum sequences required
                 raise ValueError(f"Insufficient sequences generated: {len(X)}")
             
-            # Split data with shuffling for better training
-            indices = np.arange(len(X))
-            np.random.shuffle(indices)
-            split = int(len(indices) * (1 - self.validation_split))
-            
-            train_idx = indices[:split]
-            val_idx = indices[split:]
-            
-            X_train = torch.FloatTensor(X[train_idx])
-            y_train = torch.FloatTensor(y[train_idx])
-            X_val = torch.FloatTensor(X[val_idx])
-            y_val = torch.FloatTensor(y[val_idx])
+            # Chronologically split data to prevent leakage (no shuffling)
+            split = int(len(X) * (1 - self.validation_split))
+
+            X_train = torch.FloatTensor(X[:split])
+            y_train = torch.FloatTensor(y[:split])
+            X_val = torch.FloatTensor(X[split:])
+            y_val = torch.FloatTensor(y[split:])
             
             return X_train, y_train, X_val, y_val, scaler
             
@@ -280,7 +305,7 @@ class ModelTrainer:
             X_train, y_train, X_val, y_val, scaler = self.prepare_data()
             
             # Initialize model with size based on features
-            input_size = len(self.FEATURE_LIST)
+            input_size = len(self.feature_names) if self.feature_names else X_train.shape[2]
             model = BiLSTMWithAttention(
                 input_size=input_size,
                 hidden_size=self.config["hidden_size"],
@@ -306,19 +331,14 @@ class ModelTrainer:
                 eps=1e-8  # Default Adam epsilon
             )
             
-            # Calculate steps per epoch and total steps
-            steps_per_epoch = len(X_train) // self.batch_size
-            total_steps = steps_per_epoch * self.max_epochs
-            
-            # OneCycleLR scheduler for better convergence
-            scheduler = optim.lr_scheduler.OneCycleLR(
+                        # Learning-rate scheduler – mimic legacy strategy
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer,
-                max_lr=self.config["learning_rate"] * 10,  # Peak learning rate (10x initial lr)
-                total_steps=total_steps,
-                pct_start=0.3,  # Warm up for 30% of training
-                div_factor=10.0,  # Initial lr = max_lr/10
-                final_div_factor=1000.0,  # Final lr = initial_lr/100
-                anneal_strategy='cos'
+                mode='min',
+                factor=0.5,
+                patience=10,
+                verbose=True,
+                min_lr=self.config["learning_rate"] * 0.01,
             )
             
             # Training loop with enhanced monitoring
@@ -374,12 +394,32 @@ class ModelTrainer:
                 train_loss /= (len(X_train) // self.batch_size)
                 val_loss /= (len(X_val) // self.batch_size)
                 
-                # Convert lists to numpy arrays for metric calculation
+                # Convert lists to numpy arrays
                 train_predictions = np.array(train_predictions)
                 train_actuals = np.array(train_actuals)
                 val_predictions = np.array(val_predictions)
                 val_actuals = np.array(val_actuals)
-                
+
+                # Inverse transform to original price scale for accurate metrics
+                try:
+                    close_idx = self.feature_names.index('Close')
+                    scale = scaler.scale_[close_idx]
+                    if hasattr(scaler, 'center_'):
+                        center = scaler.center_[close_idx]
+                        train_predictions = train_predictions * scale + center
+                        train_actuals = train_actuals * scale + center
+                        val_predictions = val_predictions * scale + center
+                        val_actuals = val_actuals * scale + center
+                    else:
+                        # MinMaxScaler uses min_ instead of center_
+                        min_val = scaler.min_[close_idx]
+                        train_predictions = (train_predictions - min_val) / scale
+                        train_actuals = (train_actuals - min_val) / scale
+                        val_predictions = (val_predictions - min_val) / scale
+                        val_actuals = (val_actuals - min_val) / scale
+                except Exception as inv_e:
+                    logger.warning(f"Inverse transform failed, fallback to scaled metrics: {str(inv_e)}")
+
                 # Calculate R2 scores
                 train_r2 = r2_score(train_actuals, train_predictions)
                 val_r2 = r2_score(val_actuals, val_predictions)
@@ -393,7 +433,7 @@ class ModelTrainer:
                 val_rmse = np.sqrt(mean_squared_error(val_actuals, val_predictions))
                 
                 # Get current learning rate
-                current_lr = scheduler.get_last_lr()[0]
+                current_lr = optimizer.param_groups[0]['lr']
                 
                 logger.info(
                     f"Epoch {epoch + 1}/{self.max_epochs}\n"

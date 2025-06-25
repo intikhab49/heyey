@@ -23,7 +23,7 @@ def convert_numpy_types(obj):
     else:
         return obj
 
-@router.get("/predict/{symbol}")
+@router.get("/{symbol}")
 async def get_prediction(
     symbol: str, 
     timeframe: str = Query("1h", description="Timeframe: 30m, 1h, 4h, 24h"),
@@ -104,7 +104,7 @@ async def get_prediction(
             detail=f"Internal error during prediction: {str(e)}"
         )
 
-@router.get("/predict")
+@router.get("/")
 async def get_prediction_query(
     coin: str = Query(..., description="Cryptocurrency symbol (e.g., BTC, ETH, DOGE)"),
     timeframe: str = Query("1h", description="Timeframe: 30m, 1h, 4h, 24h"),
@@ -124,7 +124,7 @@ async def get_prediction_query(
     # Delegate to the main prediction function
     return await get_prediction(coin, timeframe, force_retrain)
 
-@router.get("/test-predict/{symbol}")
+@router.get("/test/{symbol}")
 async def test_prediction(
     symbol: str,
     timeframe: str = Query("1h", description="Timeframe: 30m, 1h, 4h, 24h")

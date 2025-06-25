@@ -108,7 +108,7 @@ app.add_middleware(
 )
 
 # Include all routers - Complete Public API Suite
-app.include_router(prediction_router, prefix="/api", tags=["🎯 Predictions"])
+app.include_router(prediction_router, prefix="/api/predict", tags=["🎯 Predictions"])
 app.include_router(data_router, prefix="/api/data", tags=["📊 Market Data"]) 
 app.include_router(websocket_router, tags=["⚡ Real-time Streaming"])
 app.include_router(auth_router, prefix="/api/auth", tags=["🔐 Authentication"])

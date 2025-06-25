@@ -1,38 +1,4 @@
-"""Complete configuration for CryptoAion    "30m": {
-        "1h": {
-        "period": "60d",
-        "interval": "1h",
-        "lookback": 72,
-        "hidden_size": 128,
-        "num_layers": 2,
-        "dropout": 0.2,  # Reduced dropout
-        "batch_size": 128,  # Increased batch size
-        "learning_rate": 8e-5,  # Slightly increased
-        "max_lr": 3e-4,  # Increased max learning rate
-        "early_stopping_patience": 35,  # Increased patience
-        "sma_window": 12,
-        "ema_span": 9,
-        "bb_window": 20,
-        "momentum_window": 10,
-        "rsi_window": 14,
-        "min_samples": 720
-    },", 
-        "interval": "30m",
-        "lookback": 72,
-        "hidden_size": 128,
-        "num_layers": 2,
-        "dropout": 0.2,  # Reduced dropout for better learning
-        "batch_size": 128,  # Increased batch size 
-        "learning_rate": 1e-4,
-        "max_lr": 5e-4,  # Increased max learning rate
-        "early_stopping_patience": 35,  # Increased patience
-        "sma_window": 6,
-        "ema_span": 4,
-        "bb_window": 20,
-        "momentum_window": 5,
-        "rsi_window": 14,
-        "min_samples": 720
-    },nce"""
+"""Complete configuration for CryptoAion"""
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -53,23 +19,51 @@ DEFAULT_TIMEFRAME = "24h"
 TIMEFRAME_OPTIONS = ["1m", "5m", "15m", "30m", "1h", "4h", "24h"]
 
 # Timeframe configuration map - EXPERT TUNED FOR SPEED & ACCURACY
-# FINAL EXPERT-TUNED HYPERPARAMETERS - Fixed for Accuracy & Speed
+# This is the "Best Version" configuration for peak accuracy and speed.
 TIMEFRAME_MAP = {
     "30m": {
-        "period": "30d", "lookback": 48, "hidden_size": 64, "num_layers": 2,
-        "dropout": 0.2, "batch_size": 128, "max_lr": 0.001, "early_stopping_patience": 20
+        "period": "30d",                   # Fetch 30 days of data
+        "lookback": 48,                    # Look at the last 24 hours
+        "hidden_size": 64,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "batch_size": 128,                 # INCREASED for speed
+        "learning_rate": 0.0001,
+        "max_lr": 0.001,
+        "early_stopping_patience": 20      # REDUCED for speed
     },
     "1h": {
-        "period": "60d", "lookback": 72, "hidden_size": 128, "num_layers": 2,
-        "dropout": 0.3, "batch_size": 64, "max_lr": 5e-05, "early_stopping_patience": 30
+        "period": "60d",                   # Fetch 60 days of data
+        "lookback": 72,                    # Look at the last 3 days
+        "hidden_size": 128,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "batch_size": 64,                  # INCREASED for speed
+        "learning_rate": 0.0001,
+        "max_lr": 5e-05,
+        "early_stopping_patience": 30      # Tuned for 1h
     },
     "4h": {
-        "period": "120d", "lookback": 60, "hidden_size": 128, "num_layers": 2,
-        "dropout": 0.3, "batch_size": 64, "max_lr": 8e-05, "early_stopping_patience": 40
+        "period": "120d",                  # Fetch 120 days of data
+        "lookback": 60,                    # Look at the last 10 days
+        "hidden_size": 128,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "batch_size": 64,                  # INCREASED for speed
+        "learning_rate": 2e-05,
+        "max_lr": 8e-05,
+        "early_stopping_patience": 40
     },
     "24h": {
-        "period": "730d", "lookback": 72, "hidden_size": 192, "num_layers": 2,
-        "dropout": 0.3, "batch_size": 32, "max_lr": 8e-05, "early_stopping_patience": 50
+        "period": "730d",                  # Fetch 2 years of data
+        "lookback": 72,                    # CRITICAL FIX: Look at last ~2.5 months for accuracy
+        "hidden_size": 192,
+        "num_layers": 2,
+        "dropout": 0.3,
+        "batch_size": 32,                  # INCREASED for speed
+        "learning_rate": 2e-05,
+        "max_lr": 8e-05,
+        "early_stopping_patience": 50
     }
 }
 

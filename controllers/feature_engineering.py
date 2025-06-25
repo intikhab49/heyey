@@ -79,7 +79,7 @@ def calculate_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
         df['Sentiment_Up'] = 0.5  # Default neutral sentiment
         
     except Exception as e:
-        logger.error(f"Error calculating technical indicators: {str(e)}")
+        logger.error("Error calculating technical indicators: %s", str(e))
         # Set default values if calculation fails
         for col in ['SMA_20', 'EMA_20', 'RSI_14', 'MACD', 'MACD_Signal', 'MACD_Hist', 
                    'Bollinger_middle', 'Bollinger_Upper', 'Bollinger_Lower', 'Momentum', 
